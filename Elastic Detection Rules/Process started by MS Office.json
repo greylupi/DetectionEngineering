@@ -1,4 +1,3 @@
-POST api/detection_engine/rules
 {
   "rule_id": "process_started_by_ms_office_program",
   "risk_score": 50,
