@@ -24,11 +24,11 @@ for root, dirs, files in os.walk(r"filepath containing TOML files"):
                 alert_rule = tomllib.load(toml)
 
                 if alert_rule['rule']['type'] == "query":
-                    required = ['author', 'description', 'name', 'risk_score', 'severity', 'type', 'query', 'threat']
+                    required = ['author', 'description', 'name', 'rule_id', 'risk_score', 'severity', 'type', 'query', 'threat']
                 elif alert_rule['rule']['type'] == "eql": #event correlation alert_rule
-                    required = ['author', 'description', 'name', 'risk_score', 'severity', 'type', 'query', 'language', 'threat']
+                    required = ['author', 'description', 'name', 'rule_id', 'risk_score', 'severity', 'type', 'query', 'language', 'threat']
                 elif alert_rule['rule']['type'] == "threshold": #thrshold correlation alert_rule
-                    required = ['author', 'description', 'name', 'risk_score', 'severity', 'type', 'query', 'threshold', 'threat']
+                    required = ['author', 'description', 'name', 'rule_id', 'risk_score', 'severity', 'type', 'query', 'threshold', 'threat']
                 else:
                     print("Unsupported rule type found in: " + full_path)
                     break
