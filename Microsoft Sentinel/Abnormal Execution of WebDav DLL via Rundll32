@@ -1,0 +1,5 @@
+SecurityEvent
+| where (Process has ("rundll32.exe") and CommandLine has ("davclnt.dll"))
+| where not (ParentProcessName has ("cmd.exe"))
+| project TimeGenerated, Computer, tostring(EventID), ParentProcessName, NewProcessName, CommandLine, SubjectUserName, SourceComputerId, processID=tolong(NewProcessId), parentProcessID=tolong(ProcessId), EventData 
+| order by TimeGenerated
