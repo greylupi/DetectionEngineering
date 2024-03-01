@@ -1,11 +1,11 @@
-DeviceRegistryEvents
-| where Timestamp > ago(30d)
-| where RegistryKey has_any (
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where ObjectName has_any (
   "\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
   "\\software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\Run",
   "\\software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\Run",
   "\\software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run"
-) or RegistryKey has_any (
+) or ObjectName has_any (
   "\\software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
   "\\software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit",
   "\\software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
@@ -14,11 +14,11 @@ DeviceRegistryEvents
   "\\software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\Load",
   "\\software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\Load"
 )
-| where not(InitiatingProcessFolderPath has_any (
+| where not(Process has_any (
   "\\Microsoft Visual Studio\\Installer\\",
   "\\ClickToRun\\OfficeClickToRun.exe",
   "\\software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
   "\\Microsoft\\OneDrive\\" "\\Windows\\system32\\SearchIndexer.exe"
 ))
-| project Timestamp, DeviceName, InitiatingProcessAccountName, ActionType, RegistryKey, RegistryValueName, RegistryValueData, PreviousRegistryValueName, InitiatingProcessParentFileName, InitiatingProcessFileName, InitiatingProcessId, InitiatingProcessParentId
-| order by Timestamp
+| project TimeGenerated, Computer, Process, ObjectName, ObjectValueName, NewValue, OldValue, SubjectUserName, NewProcessId  
+| order by TimeGenerated
