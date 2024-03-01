@@ -1,0 +1,6 @@
+The following example returns a count of unique IP Addresses.
+
+SecurityEvent
+| summarize dcount(IpAddress)
+
+  
