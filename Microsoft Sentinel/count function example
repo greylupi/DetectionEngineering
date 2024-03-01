@@ -1,0 +1,12 @@
+An aggregate function column can be explicitly named by including the "fieldname=" before the aggregate function.
+
+The KQL statement returns three columns: "cnt", "AccountType", and "Computer". The "cnt" field name replaces 
+the default "count_" name.
+
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4624
+| summarize cnt=count() by AccountType, Computer
+
+
+  
