@@ -1,0 +1,5 @@
+index=* sourcetype=* TERM(rundll32) ((process_name IN ("rundll32.exe") process_cmdline IN ("*davclnt.dll**")) 
+| eval processID = case(process_id like "%x%", tonumber(process_id, 16))
+| stats values(_time) as eventTimes, values(process_path) as processPaths, values(process_cmdline) as commandLines, values(process_id) as rawProcessIds, values(processID) as processIds count by hostname 
+| convert ctime(eventTimes)
+| sort eventTimes asc
