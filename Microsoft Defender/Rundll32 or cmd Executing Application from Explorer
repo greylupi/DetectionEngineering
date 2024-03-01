@@ -1,0 +1,17 @@
+DeviceProcessEvents
+| where InitiatingProcessFileName has "explorer.exe" 
+| where FileName has_any (
+  "wscript.exe",
+  "rundll32.exe",
+  "explorer.exe",
+  "cmd.exe"
+  )
+| where (ProcessCommandLine has_any (
+  "explorer",
+  "rundll32"
+  ) and ProcessCommandLine has_any (
+  ".dll,",
+  ".dll "
+  )) or (ProcessCommandLine has "cmd.exe" and ProcessCommandLine matches regex "\\/[Cc] +[Ss][Tt][Aa][Rr][Tt].*\\.exe")
+| project Timestamp, DeviceName, ActionType, AccountName, AccountDomain, FileName, FolderPath, ProcessId, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, InitiatingProcessId, InitiatingProcessParentFileName, InitiatingProcessParentId, InitiatingProcessAccountDomain, InitiatingProcessAccountName, ProcessVersionInfoCompanyName, ProcessVersionInfoProductName, ProcessVersionInfoProductVersion, ProcessVersionInfoInternalFileName, ProcessVersionInfoOriginalFileName, ProcessVersionInfoFileDescription, FileSize, SHA256, DeviceId, ReportId
+| order by Timestamp
