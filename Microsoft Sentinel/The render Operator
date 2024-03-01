@@ -1,0 +1,3 @@
+SecurityEvent 
+| summarize count() by Account
+| render barchart
