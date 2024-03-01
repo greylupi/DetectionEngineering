@@ -1,0 +1,6 @@
+index=* sourcetype=* process_path="*\\powershell.exe" 
+| regex process_cmdline="-[Ee^]{1,2}[NnCcOoDdEeMmAa^` ]+\s{0,}\"?[a-zA-Z0-9+\/=]{6,}"
+| rename process_cmdline AS "processCmdline", process_path AS "processPath", hostname AS "sourceHost"
+| stats values(_time) as occurrences, values(processCmdline) as ProcessCommands, values(processPath) as Processes count by sourceHost
+| convert ctime(occurrences) 
+| table occurrences, sourceHost, ProcessCommands, Processes
