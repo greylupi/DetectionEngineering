@@ -1,0 +1,9 @@
+make_list() function
+The function returns a dynamic (JSON) array of all the values of Expression in the group.
+
+This KQL query will first filter the EventID with the where operator. Next, for each Computer, the results are a JSON array of Accounts.
+The resulting JSON array will include duplicate accounts.
+
+SecurityEvent
+| where EventID == "4624"
+| summarize make_list(Account) by Computer
