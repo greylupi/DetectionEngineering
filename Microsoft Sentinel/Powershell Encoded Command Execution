@@ -1,0 +1,5 @@
+SecurityEvent
+| where TimeGenerated >= ago(7d)
+| project TimeGenerated, Computer, Activity, EventID, CommandLine, NewProcessName, processId = tolong(NewProcessId), ParentProcessName, parentProcessId = tolong(ProcessId)
+| where NewProcessName endswith "powershell.exe"
+| where CommandLine matches regex "-[Ee^]{1,2}[NnCcOoDdEeMmAaPpHh^` ]+\\s{0,}\"?[a-zA-Z0-9+/=]{6,}"
