@@ -1,0 +1,5 @@
+index=* sourcetype=* process_path IN ("*\\arp.exe" "*\\at.exe" "*\\attrib.exe" "*\\cscript.exe" "*\\dsquery.exe" "*\\hostname.exe" "*\\ipconfig.exe" "*\\mimikatz.exe" "*\\nbtstat.exe" "*\\net.exe" "*\\netsh.exe" "*\\nslookup.exe" "*\\ping.exe" "*\\quser.exe" "*\\qwinsta.exe" "*\\reg.exe" "*\\runas.exe" "*\\sc.exe" "*\\schtasks.exe" "*\\ssh.exe" "*\\systeminfo.exe" "*\\taskkill.exe" "*\\telnet.exe" "*\\tracert.exe" "*\\wscript.exe" "*\\xcopy.exe" "*\\pscp.exe" "*\\copy.exe" "*\\robocopy.exe" "*\\certutil.exe" "*\\vssadmin.exe" "*\\powershell.exe" "*\\wevtutil.exe" "*\\psexec.exe" "*\\bcedit.exe" "*\\wbadmin.exe" "*\\icacls.exe" "*\\diskpart.exe" "*ver.exe" "*netstat.exe" "*tasklist.exe" "*route.exe" "*driverquery.exe")
+| bucket _time span=5m
+| stats values(_time) as eventTimes, values(process_path) as processPaths, values(parent_process_path) as parentProcessPaths, values(process_cmdline) as commandLines, dc(process_path) as uniqueProcessPathCount by hostname, _time
+| where uniqueProcessPathCount >= 5
+| convert ctime(eventTimes)
