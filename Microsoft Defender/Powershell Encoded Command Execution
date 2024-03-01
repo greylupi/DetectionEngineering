@@ -1,0 +1,18 @@
+DeviceProcessEvents
+| project DeviceId, DeviceName, ActionType, Timestamp, FolderPath, FileName, ProcessId, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessFolderPath, InitiatingProcessCommandLine, InitiatingProcessId, InitiatingProcessParentFileName
+| where FileName has "powershell.exe"
+// Check if the string contains any base64 data -- this negates the need to check for encoded strings
+| where ProcessCommandLine matches regex "-[Ee^]{1,2}[NnCcOoDdEeMmAaPpHh^` ]+\\s{0,}\"?[a-zA-Z0-9+/=]{6,}"
+// Extract base64 and handle output to decode
+| extend base64_extracted = extract('([A-Za-z0-9+/]{20,}[=]{0,3})', 1, ProcessCommandLine)
+| extend base64_extracted = substring(base64_extracted, 0, (strlen(base64_extracted) / 4) * 4) 
+| extend base64_decoded = replace(@'\0', '', make_string(base64_decode_toarray(base64_extracted)))
+// Automatically extract any base64 string found in the originally decoded strings
+| extend doubleEncoded_base64_extracted = extract('[ \"\']+([A-Za-z0-9+/]{20,}[=]{0,3})', 1, base64_decoded)
+| extend doubleEncoded_base64_extracted = substring(doubleEncoded_base64_extracted, 0, (strlen(doubleEncoded_base64_extracted) / 4) * 4) 
+| extend doubleEncoded_base64_decoded = replace(@'\0', '', make_string(base64_decode_toarray(doubleEncoded_base64_extracted)))
+// check if base64 was found in orig decoded string and output double encoded
+| extend decodedCommands = iff(base64_decoded matches regex "[ \"\']+[A-Za-z0-9+/]{20,}[=]{0,3}", doubleEncoded_base64_decoded, base64_decoded)
+// Check the decoded command is not empty and verify it contains a legible string -- comment out the next line when testing to ensure no data is being missed
+| where isnotempty(decodedCommands) and decodedCommands matches regex '[A-Za-z0-9+\\.]{5,}'
+| project DeviceName, Timestamp, FileName, InitiatingProcessFileName, InitiatingProcessParentFileName, ProcessCommandLine, InitiatingProcessCommandLine, decodedCommands, base64_decoded, base64_extracted, doubleEncoded_base64_extracted, doubleEncoded_base64_decoded
