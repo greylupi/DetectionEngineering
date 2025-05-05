@@ -1,0 +1,12 @@
+The parse, parse-where, and parse-kv operators in KQL are specialized for extracting values from string fields based on patterns, and they don't require or support scalar functions. These operators are particularly useful when dealing with log data or any string data that follows a consistent format.
+
+WebProxy
+| parse OriginalEvent with HTTPRequestMethod " " URL " " *
+
+// parse only the URL and assign it to a new field 'URL'
+WebProxy
+| parse OriginalEvent with * " " URL " " *
+
+// parse only the HTTP request method and HTTP protocol version and assign them to 'HTTPRequestMethod' and 'HTTPProtocolVersion' respectively
+WebProxy
+| parse OriginalEvent with HTTPRequestMethod " " * " " HTTPProtocolVersion
