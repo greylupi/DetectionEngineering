@@ -1,0 +1,4 @@
+NetworkConnections
+| where Protocol == "HTTPS"
+| where isnull(sslVersion) or sslVersion == "" or isnull(sslCipher) or sslCipher == ""
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, sslVersion, sslCipher
