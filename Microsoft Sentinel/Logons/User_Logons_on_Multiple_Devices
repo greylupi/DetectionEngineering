@@ -8,3 +8,20 @@ SecurityEvent
 | where EventID == 4624           //set succesful logon event id
 | summarize unique_computer_count = dcount(Computer) by TargetUserName
 | where unique_computer_count > 3     // set the number of devices, 
+
+
+
+
+
+This is a similar query, but uses the DevcieLogonEvents table
+// Setting the timestamp parameters to use the ago() function
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-14 14:10:00);
+set query_now = datetime(2023-09-14 14:10:00);
+// Actual query
+DeviceLogonEvents
+| where Timestamp > ago(48h)
+| where ActionType == "LogonSuccess"
+| where LogonType != "Interactive"
+| summarize unique_computer_count = dcount(DeviceName) by AccountName
+| where unique_computer_count > 3
