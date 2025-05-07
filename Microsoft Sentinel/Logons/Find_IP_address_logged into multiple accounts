@@ -1,0 +1,13 @@
+Identify IP addresses with successful logins from more than 2 different accounts(except Interactive logins) in the last 48 hours using the logs in the DeviceLogonEvents table.
+
+// Setting the timestamp parameters to use the ago() function
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-14 14:10:00);
+set query_now = datetime(2023-09-14 14:10:00);
+// Actual query
+DeviceLogonEvents
+| where Timestamp > ago(48h)
+| where ActionType == "LogonSuccess"
+| where LogonType != "Interactive"
+| summarize unique_account_count = count_distinct(AccountName) by RemoteIP
+| where unique_account_count > 2     
