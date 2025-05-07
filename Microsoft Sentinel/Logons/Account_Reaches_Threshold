@@ -1,0 +1,7 @@
+let start_time = datetime(2023-09-13 14:10:00);  //modify time start
+let end_time = datetime(2023-09-14 14:10:00);   //modify time end
+SecurityEvent
+| where TimeGenerated between (start_time .. end_time)
+| where EventID == 4624   //succesful logon event id
+| summarize login_count = count() by TargetUserName
+| where login_count > 100   //set threshold
