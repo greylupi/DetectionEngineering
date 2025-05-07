@@ -1,0 +1,7 @@
+let admin_users = 
+    UserProfiles
+    |where Role == 'Admin'
+    |summarize make_list(UserId)
+    ;
+UserLoginEvents
+| where UserId in (admin_users)
