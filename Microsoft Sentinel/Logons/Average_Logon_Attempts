@@ -1,0 +1,11 @@
+Identify the average of successful network logins in the last 24 hours based on AccountName using the logs in the DeviceLogonEvents table.
+
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-14 14:10:00);
+set query_now = datetime(2023-09-14 14:10:00);
+DeviceLogonEvents
+| where Timestamp > ago(24h)
+| where ActionType == "LogonSuccess"
+| where LogonType == "Network"
+| summarize login_count = count() by AccountName
+| summarize avg_login_count = avg(login_count)
