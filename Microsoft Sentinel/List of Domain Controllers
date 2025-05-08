@@ -1,0 +1,9 @@
+// generate a list of domain controllers dynamically
+let domain_controllers = toscalar(
+    SecurityEvent
+    | where EventID in (4768, 4769)
+    | summarize make_set(Computer)
+);
+SecurityEvent
+| where Computer in (domain_controllers)
+| count
