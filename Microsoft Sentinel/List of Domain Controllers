@@ -7,3 +7,9 @@ let domain_controllers = toscalar(
 SecurityEvent
 | where Computer in (domain_controllers)
 | count
+
+
+
+SecurityEvent
+| where Computer contains "DC"
+| summarize Total_Count = count()
