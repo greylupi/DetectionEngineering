@@ -1,0 +1,9 @@
+ let untrusted_images =   
+    DeviceFileCertificateInfo
+    | where not (IsTrusted == true)
+    | summarize make_set(SHA1)
+;
+DeviceImageLoadEvents
+| where SHA1 in (untrusted_images)
+
+
