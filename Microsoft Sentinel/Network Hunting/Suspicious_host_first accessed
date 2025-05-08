@@ -1,0 +1,10 @@
+n the last 15 days, find when a suspicious host "cdn.p-n.io" was first accessed and gather all details of the activity like who accessed it, what the IP address of the accessed host was, how much data was transferred, etc.
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-24 13:10:00);
+set query_now = datetime(2023-09-24 13:10:00);
+// Actual query
+WebProxy
+| where TimeGenerated > ago(15d)
+| where DestinationHostName == "cdn.p-n.io"
+| summarize arg_min(TimeGenerated, *)
