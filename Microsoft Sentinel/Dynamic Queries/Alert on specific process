@@ -1,0 +1,12 @@
+Detect when 'executable.exe' is executed on Windows 10 devices.
+
+creates a win10_devices set with only windows 10 machines
+
+let win10_devices =
+    DeviceInfo
+    | where OSPlatform == "Windows10"
+    | summarize make_set(DeviceName)
+    ;
+DeviceProcessEvents
+| where DeviceName in (win10_devices)
+| where FileName =~ "executable.exe"
