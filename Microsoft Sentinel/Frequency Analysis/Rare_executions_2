@@ -1,0 +1,15 @@
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-25 09:10:00);
+set query_now = datetime(2023-09-25 09:10:00);
+//Actual Query
+let _start = ago(4d);
+let _end = ago(3d);
+DeviceProcessEvents
+| where Timestamp > ago(15d)
+| summarize Prevalence = dcount(DeviceId), FirstSeen = min(Timestamp), LastSeen = arg_max(Timestamp,*) by SHA1
+| where Prevalence < 3
+| where LastSeen between ( _start .. _end ) and FirstSeen between ( _start .. _end )
+
+
+This approach, focusing on events from the recent past rather than the most immediate data, represents a shift in traditional detection methods where we alert on the most immediate data. 
+It's like receiving a detection alert from the past, offering a unique perspective on rare events. It's like having a SIEM that runs in the past but also checks data from the future and alerts us accordingly.
