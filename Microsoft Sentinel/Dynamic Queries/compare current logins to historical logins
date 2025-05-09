@@ -1,0 +1,70 @@
+Detect when a user's login count in the last day is at least twice the average of his logins over the previous seven days using the SecurityEvents table.
+
+First, we need to create our baseline, which is the average login count per user over the previous seven days
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-19 13:10:00);
+set query_now = datetime(2023-09-19 13:10:00);
+// Actual Query
+let lookback = 8d;
+let query_timeframe = 1d;
+let baseline = 
+    SecurityEvent
+    | where TimeGenerated between (ago(lookback) .. ago(query_timeframe))
+    | where EventID == 4624
+    | summarize avg_login_count = (count() / 7.0) by TargetUserName
+    ;
+
+
+Then, we need to compare the last 1d with the baseline
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-19 13:10:00);
+set query_now = datetime(2023-09-19 13:10:00);
+// Actual Query
+let lookback = 8d;
+let query_timeframe = 1d;
+let baseline = 
+    SecurityEvent
+    | where TimeGenerated between (ago(lookback) .. ago(query_timeframe))
+    | where EventID == 4624
+    | summarize avg_login_count = round((count() / 7.0), 2) by TargetUserName
+    ;
+SecurityEvent
+| where TimeGenerated > ago(query_timeframe)
+| where EventID == 4624
+| summarize current_login_count = count() by TargetUserName
+| join kind=inner baseline on TargetUserName
+| where current_login_count > avg_login_count * 2
+| project TargetUserName, avg_login_count, current_login_count
+
+
+While historical baseline comparison is a common method for anomaly detection in general, it may not perform well in security analysis depending on the use case and requires careful implementation. In this example scenario, we analyzed the account login activities. In reality, employees work 4-5 days a week. Since they don't work during the weekend, the login count becomes 0 for 2 days. When you calculate the average, you get a lower value because of two 0s. One way to fix this problem is to calculate the average of 5 working days. In KQL, we can use a combination of functions to calculate the average based on working days as follows:
+
+dayofweek(<timestamp>): returns the day of the week as timespan value, i.e. 2.00:00:00 for Tuesday
+format_timespan(<timespan>, <format>): allows extracting certain parts of the timespan like days part, hours part, etc.
+toint(<value>): converts a value to an integer (if possible).
+
+Using the functions above, we can calculate the average of 5 working days and analyze the logins:
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-19 13:10:00);
+set query_now = datetime(2023-09-19 13:10:00);
+// Actual Query
+let lookback = 8d;
+let query_timeframe = 1d;
+let baseline = 
+    SecurityEvent
+    | where TimeGenerated between (ago(lookback) .. ago(query_timeframe))
+    | where EventID == 4624
+    | where toint(format_timespan(dayofweek(TimeGenerated), 'd')) !in (6,7)
+    | summarize avg_login_count = (count() / 5.0) by TargetUserName
+    ;
+SecurityEvent
+| where TimeGenerated > ago(query_timeframe)
+| where EventID == 4624
+| summarize current_login_count = count() by TargetUserName
+| join kind=inner baseline on TargetUserName
+| where current_login_count > avg_login_count * 2
+| project TargetUserName, avg_login_count, current_login_count
+
