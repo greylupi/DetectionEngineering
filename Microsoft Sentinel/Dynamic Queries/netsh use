@@ -1,0 +1,64 @@
+develop a detection to identify when "netsh.exe" gets executed for the first time on Windows 10 devices in the last 30 days. The detection should run every hour.
+
+
+We can create a baseline from 30 days ago until 1 hour ago where 'netsh.exe' was executed:
+
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+// Actual query
+let lookback = 30d;
+let query_timeframe = 1h;
+// Windows 10 devices in the last 30d
+let win10_devices = 
+    DeviceInfo
+    | where Timestamp > ago(lookback)
+    | where OSPlatform == 'Windows10'
+    | summarize make_set(DeviceName)
+    ;
+// Create baseline
+let baseline = 
+    DeviceProcessEvents
+    // Exclude the last 1d from the baseline
+    // as it's going to be the time frame we will compare
+    | where Timestamp between (ago(lookback) .. ago(query_timeframe))
+    | where DeviceName in (win10_devices)
+    | where FileName =~ 'netsh.exe'
+    ;
+
+
+
+After creating a baseline, we can compare the events from the last 1 hour with the baseline using "leftanti" or "leftantisemi" join. This gives us the 'netsh.exe' executions that did not happen in the baseline. Therefore, the result will be the events where the 'netsh.exe' is executed for the first time
+
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+// Actual query
+let lookback = 30d;
+let query_timeframe = 1h;
+// Windows 10 devices in the last 30d
+let win10_devices = 
+    DeviceInfo
+    | where Timestamp > ago(lookback)
+    | where OSPlatform == 'Windows10'
+    | summarize make_set(DeviceName)
+    ;
+// Create baseline
+let baseline = 
+    DeviceProcessEvents
+    | where Timestamp between (ago(lookback) .. ago(query_timeframe))
+    | where DeviceName in (win10_devices)
+    | where FileName =~ 'netsh.exe'
+    ;
+// Compare last 1h of data with the baseline using leftantisemi join
+DeviceProcessEvents
+| where Timestamp > ago(query_timeframe)
+| where DeviceName in (win10_devices)
+| where FileName =~ 'netsh.exe'
+| join kind=leftantisemi baseline on DeviceId
+
+
+
+Method 2: Using Row Selector Functions
+Instead of creating a baseline and comparing it with the recent data, we can just use arg_min() function to retrieve the events where they first happened. Then, all we need to do is check if the event timestamp is in the last 1h. It's that simple.
+
