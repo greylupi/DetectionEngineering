@@ -62,3 +62,22 @@ DeviceProcessEvents
 Method 2: Using Row Selector Functions
 Instead of creating a baseline and comparing it with the recent data, we can just use arg_min() function to retrieve the events where they first happened. Then, all we need to do is check if the event timestamp is in the last 1h. It's that simple.
 
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+// Actual query
+let lookback = 30d;
+let query_timeframe = 1h;
+// Windows 10 devices in the last 30d
+let win10_devices = 
+    DeviceInfo
+    | where Timestamp > ago(lookback)
+    | where OSPlatform == 'Windows10'
+    | summarize make_set(DeviceName)
+    ;
+DeviceProcessEvents
+| where Timestamp > ago(lookback)
+| where DeviceName in (win10_devices)
+| where FileName =~ 'netsh.exe'
+| summarize FirstExecution = arg_min(Timestamp, *) by DeviceId
+| where FirstExecution >= ago(query_timeframe)
