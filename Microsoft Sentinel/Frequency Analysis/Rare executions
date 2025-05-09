@@ -1,0 +1,22 @@
+detect rare process executions in our environment using the DeviceProcessEvents table. A process is considered rare if executed on fewer than three devices. Our goal is to alert or investigate any file executed on just one or two devices.
+Understanding the Importance of Time Range
+Initially, let's determine the appropriate time range for analysis. A shorter time frame, like 4 hours, might lead to false positives as common processes may not occur on many devices within such a brief period, making them appear rare.
+
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-25 09:10:00);
+set query_now = datetime(2023-09-25 09:10:00);
+//Actual Query
+DeviceProcessEvents
+| where Timestamp > ago(4h)
+| summarize Prevalence = dcount(DeviceId), FirstSeen = min(Timestamp), LastSeen = arg_max(Timestamp,*) by SHA1
+| where Prevalence < 3
+
+
+set query_datetimescope_column = "Timestamp";
+set query_datetimescope_to = datetime(2023-09-25 09:10:00);
+set query_now = datetime(2023-09-25 09:10:00);
+//Actual Query
+DeviceProcessEvents
+| where Timestamp > ago(4h)
+| summarize Prevalence = dcount(DeviceId), FirstSeen = min(Timestamp), LastSeen = arg_max(Timestamp,*) by SHA1
+| where Prevalence < 3 
