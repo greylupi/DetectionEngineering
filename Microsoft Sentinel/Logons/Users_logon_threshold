@@ -1,0 +1,10 @@
+// Setting the timestamp parameters to use the ago() function
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-14 14:10:00);
+set query_now = datetime(2023-09-14 14:10:00);
+// Actual query 
+SecurityEvent
+| where TimeGenerated > ago(24h)
+| where EventID == 4624
+| summarize login_count = count() by TargetUserName
+| where login_count > 100
