@@ -1,0 +1,35 @@
+SampleWorkstationEvents
+| sort by Timestamp asc 
+| scan with_match_id=instance_id declare (step:int) with (
+  step ConnectToIntnernet:  ActionType=="ConnectionSuccess" and RemoteIPType == "Public" => step = 1;
+  step CreateFile:          ActionType == "FileCreated" and InitiatingProcessId == ConnectToIntnernet.InitiatingProcessId and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 2;
+  step CreateProcess:       ActionType == "ProcessCreated" and InitiatingProcessId == ConnectToIntnernet.InitiatingProcessId and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 3;
+  step LoadImage:           ActionType == "ImageLoaded" and InitiatingProcessId == CreateProcess.ProcessId and FileName =~ CreateFile.FileName and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 4;
+)
+
+Since we filtered on the step field, we can only display the last event of the sequence. 
+This is enough to generate an alert.
+
+To display all the events of completed sequences, you can materialize the query results before filtering. 
+Then, filter the results and perform a self-join on the instance_id field:
+
+
+let Sequences = materialize (
+    SampleWorkstationEvents
+    | sort by Timestamp asc 
+    | scan with_match_id=instance_id declare (step:int) with (
+    step ConnectToIntnernet:  ActionType=="ConnectionSuccess" and RemoteIPType == "Public" => step = 1;
+    step CreateFile:          ActionType == "FileCreated" and InitiatingProcessId == ConnectToIntnernet.InitiatingProcessId and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 2;
+    step CreateProcess:       ActionType == "ProcessCreated" and InitiatingProcessId == ConnectToIntnernet.InitiatingProcessId and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 3;
+    step LoadImage:           ActionType == "ImageLoaded" and InitiatingProcessId == CreateProcess.ProcessId and FileName =~ CreateFile.FileName and Timestamp - ConnectToIntnernet.Timestamp < 1m => step = 4;
+    )
+)
+;
+Sequences
+| where step == 4
+| project instance_id
+| join kind=inner Sequences on instance_id
+
+
+the "materialize" caches the query results so that the query doesnt get executed mulptiple times, ensuring consistency
+and accuracy
