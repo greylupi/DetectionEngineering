@@ -1,0 +1,17 @@
+For the last 3 days, generate a time series data of total bytes(SentBytes + ReceivedBytes) 
+per source IP with a 1-day interval using the WebProxy logs.
+
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//actual query
+let _start = ago(3d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty( DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
