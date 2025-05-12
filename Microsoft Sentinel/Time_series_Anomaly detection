@@ -100,3 +100,56 @@ WebProxy
 | where difference_from_baseline > 500
 | where TimeGenerated >= ago(1d)
 
+
+
+
+some results when queried may have zero's... so this would not be representative. to filter out the no data we can use the below
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+// minimim data point filter
+// exclude series where there are more than 7 zeros
+// (the first 0 is the value we search for, the second 0 is the position/index to start the search)
+| where array_index_of(TotalBytes, 0 , 0 , -1 , 7) == -1
+
+
+
+using the whole thing again
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+// minimim data point filter
+// exclude series where there are more than 7 zeros
+// (the first 0 is the value we search for, the second 0 is the position/index to start the search)
+| where array_index_of(TotalBytes, 0 , 0 , -1 , 7) == -1
+| extend (ad_flag, ad_score, baseline) = series_decompose_anomalies(TotalBytes)
+| mv-expand TimeGenerated to typeof(datetime), TotalBytes to typeof(long), 
+            ad_flag to typeof(int), ad_score to typeof(real), baseline to typeof(real)
+| where ad_flag == 1
+| extend difference_from_baseline = round((TotalBytes - baseline) / (1024*1024), 2)
+| where difference_from_baseline > 500
+| where TimeGenerated >= ago(1d)
+
+this time in our example, we got no hits... because the zero sent and recieved bytes were creating false positives. 
