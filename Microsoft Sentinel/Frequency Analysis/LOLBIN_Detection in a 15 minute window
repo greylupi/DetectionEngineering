@@ -1,0 +1,17 @@
+let discovery_procs = dynamic(["hostname", "systeminfo", "whoami", "netstat", "ping", "ipconfig"]);
+DeviceProcessEvents
+| where FileName has_any (discovery_procs)
+| summarize executed_commands = make_set(FileName) by DeviceName, bin(Timestamp, 15m)
+| where array_length(executed_commands) >= 3
+
+
+consider grouping by both DeviceName and InitiatingProcessFileName.
+You can create multiple lists for various types of discovery commands. 
+For example, you could distinguish between host and process discovery commands, 
+enabling targeted detection strategies like "at least 2 host discovery commands
+and at least 1 process discovery command".
+To maximize effectiveness, you can set the rule's schedule interval to be shorter 
+than the time frame used in the query. This creates a moving analysis window, capturing a
+broader range of command executions, thus reducing the likelihood of missing events (false negatives).
+For instance, setting the rule to run every 5 minutes can be effective for the above query.
+However, this approach might lead to duplicate alerts.
