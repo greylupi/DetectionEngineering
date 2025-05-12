@@ -1,5 +1,4 @@
 calculates the average login count over the past week and compares it with the current day's login count. 
-However, this approach did not yield good results due to flawed assumptions in averaging:
 
 
 set query_datetimescope_column = "TimeGenerated";
@@ -14,6 +13,30 @@ let baseline =
     | where EventID == 4624
     | where toint(format_timespan(dayofweek(TimeGenerated), 'd')) !in (6,7)
     | summarize avg_login_count = (count() / 5.0) by TargetUserName;
+SecurityEvent
+| where TimeGenerated > ago(query_timeframe)
+| where EventID == 4624
+| summarize current_login_count = count() by TargetUserName
+| join kind=inner baseline on TargetUserName
+| where current_login_count  > avg_login_count * 2
+| project TargetUserName, avg_login_count, current_login_count
+
+
+improved technique with binning
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-19 13:10:00);
+set query_now = datetime(2023-09-19 13:10:00);
+//actual query
+let loopback = 8d;
+let query_timeframe = 1d;
+let baseline =
+    SecurityEvent
+    |where TimeGenerated between (ago(loopback) .. ago(query_timeframe) )
+    | where EventID == 4624
+    | where toint(format_timespan(dayofweek(TimeGenerated), 'd')) !in (6,7)
+    | summarize login_count = count() by TargetUserName, bin(TimeGenerated, 1d)
+    | summarize avg_login_count = avg(login_count) by TargetUserName;
 SecurityEvent
 | where TimeGenerated > ago(query_timeframe)
 | where EventID == 4624
