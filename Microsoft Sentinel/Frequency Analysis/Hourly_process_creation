@@ -1,0 +1,12 @@
+hourly process creation count of corpgenws02.otrflabs.com using the DeviceProcessEvents table
+
+DeviceProcessEvents
+| where DeviceName == "corpgenws02.otrflabs.com"
+| summarize total_process_count = count() by bin(Timestamp, 1h)
+| sort by Timestamp asc
+
+Get the daily process creation count per device using the DeviceProcessEvents table
+
+DeviceProcessEvents
+| summarize total_process_count = count() by DeviceName, bin(Timestamp, 1d)
+| sort by Timestamp asc
