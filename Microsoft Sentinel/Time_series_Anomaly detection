@@ -1,0 +1,102 @@
+Today is September 18, 2023, and the time is 09:10:00. By analyzing the last 14 days of data, 
+generate a time series data of total bytes(SentBytes + ReceivedBytes) per source IP with a 
+1-day interval using the WebProxy logs. 
+Develop an anomaly detection by leveraging series_decompose_anomalies() function and any KQL capabilities.
+
+Step 1: Generate Continuous Time Series Data
+We will start by creating time series data using the make-series operator. This step involves aggregating 
+total bytes transmitted per source IP over the specified 14-day period, broken down into daily intervals:
+
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+
+
+Step 2: Apply series_decompose_anomalies() for Anomaly Detection
+After creating the continuous time series data, the next step is applying the series_decompose_anomalies() function. 
+This function will process the TotalBytes column to detect and quantify anomalies in data transmission over the
+specified period.
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+| extend (ad_flag, ad_score, baseline) = series_decompose_anomalies(TotalBytes)
+
+Step 3: Expand Analysis Results for Effective Anomaly Detection
+With the anomaly detection analysis completed using the series_decompose_anomalies() function, the next step is to 
+effectively handle and filter the results for actionable insights. The raw output from the query is not immediately 
+suitable for straightforward filtering and analysis due to its series-based format. To address this, 
+we utilize the mv-expand operator, a tool we previously explored, to flatten the series data into a more manageable form.
+
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+| extend (ad_flag, ad_score, baseline) = series_decompose_anomalies(TotalBytes)
+| mv-expand TimeGenerated to typeof(datetime), TotalBytes to typeof(long), 
+            ad_flag to typeof(int), ad_score to typeof(real), baseline to typeof(real)
+| sort by SourceIP, TimeGenerated 
+
+Step 4: Filter the Expanded Data for Accurate Anomaly Detection
+Having expanded the anomaly detection results into a more analyzable format, the final step involves strategically filtering the data to accurately identify genuine anomalies while minimizing false positives. This process is crucial as it determines the effectiveness and reliability of our anomaly detection. We can use the following methods for filtering:
+
+Utilizing Anomaly Flag and Score:
+We use the ad_flag and ad_score to filter significant anomalies. The anomaly flag indicates the presence and type of anomaly, while the score quantifies its significance.
+A higher anomaly score typically reflects a more significant deviation from normal patterns.
+Considering the Difference Between TotalBytes and Baseline:
+To account for instances where small data spikes result in high anomaly scores, we can evaluate the difference between TotalBytes and the baseline value. This approach helps in distinguishing between substantial anomalies and minor fluctuations that may not be of concern.
+Contextual Analysis:
+The filtering criteria should be adapted based on the analysis of results and the specific environment. Factors like typical data patterns, known operational schedules, and historical trends should inform the filtering process.
+
+Below is the application specific to our scenario:
+set query_datetimescope_column = "TimeGenerated";
+set query_datetimescope_to = datetime(2023-09-18 09:10:00);
+set query_now = datetime(2023-09-18 09:10:00);
+//Actual Query
+let _start = ago(14d);
+let _end = now();
+WebProxy
+| where TimeGenerated > _start
+| where isnotempty(SourceIP)
+| where SourceIP != '-'
+| where isnotempty(DestinationIP)
+| project TimeGenerated, SourceIP, DestinationIP, SentBytes, ReceivedBytes
+| make-series TotalBytes = sum(SentBytes + ReceivedBytes) on TimeGenerated from _start to _end step 1d by SourceIP
+| extend (ad_flag, ad_score, baseline) = series_decompose_anomalies(TotalBytes)
+| mv-expand TimeGenerated to typeof(datetime), TotalBytes to typeof(long), 
+            ad_flag to typeof(int), ad_score to typeof(real), baseline to typeof(real)
+| where ad_flag == 1
+| extend difference_from_baseline = round((TotalBytes - baseline) / (1024*1024), 2)
+| where difference_from_baseline > 500
+| where TimeGenerated >= ago(1d)
+
